@@ -1,5 +1,7 @@
 # StackWorks
 
+**Live:** https://stackworks-dusky.vercel.app · **Source:** https://github.com/VincentAZ/SWFactory2
+
 **An interactive 3D museum exhibit that teaches nontechnical founders how modern software applications work, and what to ask an AI that writes the code.**
 
 StackWorks turns the client-server software stack into a friendly mechanical machine you can walk around, take apart, and run. Seventeen stations (people and devices, frontend, DNS/CDN, security, load balancer, API gateway, auth, backend, database, cache, storage, queue and workers, AI services, third-party APIs, observability, CI/CD, cloud infrastructure) sit on a platform connected by glass pipes. Data travels through the pipes as glowing packets.
