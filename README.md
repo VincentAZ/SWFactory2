@@ -3,7 +3,7 @@
 <p align="center"><strong>How software works, as a machine you can walk around, take apart, and run.</strong></p>
 
 <p align="center">
-  <a href="https://stackworks-dusky.vercel.app"><strong>▶ Open the exhibit</strong></a> ·
+  <a href="https://www.stackworksai.tech/"><strong>▶ Open the exhibit</strong></a> ·
   <a href="#what-you-can-do">What you can do</a> ·
   <a href="#run-it-locally">Run it locally</a> ·
   <a href="#how-its-built">How it's built</a> ·
@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <a href="https://stackworks-dusky.vercel.app"><img src="docs/screenshots/hero.png" width="900" alt="The StackWorks machine mid-tour: the backend engine room, with pipes running to the database, cache, storage and queue"></a>
+  <a href="https://www.stackworksai.tech/"><img src="docs/screenshots/hero.png" width="900" alt="The StackWorks machine mid-tour: the backend engine room, with pipes running to the database, cache, storage and queue"></a>
 </p>
 
 StackWorks is an interactive 3D museum exhibit for **nontechnical founders** who are about to have an AI write their software. It turns the modern client–server stack into a friendly mechanical machine: seventeen stations on a platform, connected by glass pipes, with requests travelling through them as glowing packets. Click any station and it tells you, in plain English, what it does, how it connects, what usually goes wrong, and **exactly what to ask your AI** when you build that part.
