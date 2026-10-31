@@ -59,8 +59,8 @@ Founders can now direct an AI to write 100% of their code. What they can't outso
 Requires Node.js 20+.
 
 ```bash
-git clone https://github.com/VincentAZ/SWFactory2.git
-cd SWFactory2
+git clone https://github.com/VincentAZ/StackWorks.git
+cd StackWorks
 npm install
 npm run dev          # http://localhost:5173
 ```
