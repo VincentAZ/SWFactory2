@@ -23,6 +23,13 @@ export type ComponentId =
 
 export type Complexity = 1 | 2 | 3; // 1 = Simple, 2 = Standard, 3 = Production
 
+/**
+ * Reading lens: which voice the component copy is shown in.
+ * 'founder' = analogy-first plain language (default). 'builder' = the technical copy.
+ * Copy variants only: same components, same scenes, same interactions.
+ */
+export type ReadingLens = 'founder' | 'builder';
+
 export interface LayerInfo {
   id: LayerId;
   name: string;
@@ -68,6 +75,20 @@ export interface ComponentContent {
   askAi: AiQuestionGroup[];
   quiz: QuizQuestion[];
   glossary?: string[]; // glossary term ids mentioned
+}
+
+/** The Founder-lens copy for one component. Lives in content/founder.ts, keyed by ComponentId. */
+export interface FounderCopy {
+  /** one-line summary shown in the inspector header, tooltip, and dock */
+  tagline: string;
+  /** "Think of it as": one everyday metaphor */
+  analogy: string;
+  /** 2–3 sentences, plain language, no unexplained jargon */
+  description: string;
+  /** "In the real world": one example from a small-business app (CRM, booking tool, AI assistant) */
+  realWorld: string;
+  /** 2–3 copy-paste prompts for the founder's AI coding assistant */
+  askAi: string[];
 }
 
 export interface Glossary {

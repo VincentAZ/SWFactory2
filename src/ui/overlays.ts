@@ -1,5 +1,5 @@
 import { store, type Quality } from '../app/store';
-import { COMPONENTS } from '../content/components';
+import { COMPONENTS, taglineFor } from '../content/components';
 import { GLOSSARY } from '../content/glossary';
 import { SCENARIOS } from '../content/scenarios';
 import { TOURS } from '../content/tours';
@@ -8,6 +8,7 @@ import { h, clear, icon, button, mount } from './dom';
 import { select, setMode, startTourById, openDecision, finishOnboarding } from '../app/actions';
 import { scenarioPlayer } from '../app/scenarioPlayer';
 import { runtime } from '../app/context';
+import { createLensToggle } from './lens';
 
 function modal(title: string, body: HTMLElement, opts: { onClose?: () => void; wide?: boolean } = {}) {
   const close = () => { el.classList.add('is-leaving'); setTimeout(() => el.remove(), 180); opts.onClose?.(); };
@@ -80,6 +81,7 @@ export function openSettings() {
   } }, q.label)));
   const fps = h('span', { class: 'muted' }, `${Math.round(runtime.scene.fps())} fps`);
   const body = h('div', { class: 'settings' },
+    h('div', { class: 'setting' }, h('span', null, 'Reading lens', h('small', null, 'Founder: plain language, analogy first. Builder: the technical version.')), createLensToggle()),
     h('label', { class: 'setting' }, h('span', null, 'Render quality', h('small', null, 'Auto lowers quality if the frame rate drops. ', fps)), seg),
     h('label', { class: 'setting' }, h('input', { type: 'checkbox', checked: s.reduceMotion, onchange: (e: Event) => store.set({ reduceMotion: (e.target as HTMLInputElement).checked }) }), h('span', null, 'Reduce motion', h('small', null, 'Instant camera moves and shorter animations'))),
     h('label', { class: 'setting' }, h('input', { type: 'checkbox', checked: s.labels, onchange: (e: Event) => store.set({ labels: (e.target as HTMLInputElement).checked }) }), h('span', null, 'Show labels')),
@@ -98,7 +100,8 @@ export function openSearch() {
 
   function all(): Hit[] {
     const out: Hit[] = [];
-    for (const c of COMPONENTS) out.push({ kind: 'Component', title: c.name, sub: c.tagline, go: () => { setMode('explore'); select(c.id); } });
+    const lens = store.get().lens;
+    for (const c of COMPONENTS) out.push({ kind: 'Component', title: c.name, sub: taglineFor(c.id, lens), go: () => { setMode('explore'); select(c.id); } });
     for (const g of GLOSSARY) out.push({ kind: 'Term', title: g.term, sub: g.def, go: () => { store.toast(`${g.term}: ${g.def}`, '📖'); } });
     for (const sc of SCENARIOS) out.push({ kind: 'Scenario', title: sc.title, sub: sc.summary, go: () => { setMode('scenarios'); scenarioPlayer.start(sc.id, { autoplay: true }); } });
     for (const t of TOURS) out.push({ kind: 'Tour', title: t.title, sub: t.summary, go: () => { setMode('tours'); startTourById(t.id); } });

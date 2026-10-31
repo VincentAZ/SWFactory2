@@ -1,9 +1,10 @@
 import { store, type Mode } from '../app/store';
 import type { ComponentId, Complexity, LayerId } from '../app/types';
-import { COMPONENT_MAP, COMPONENT_ORDER } from '../content/components';
+import { COMPONENT_MAP, COMPONENT_ORDER, taglineFor } from '../content/components';
 import { LAYERS, LAYER_LIST } from '../content/layers';
 import { h, clear, icon, button, mount } from './dom';
 import { setMode, select, setComplexity, setLayerFilter, setView, setExplode, toggleXray, toggleIsolate, toggleLabels, toggleFlow, resetView, toggleDock } from '../app/actions';
+import { createLensToggle } from './lens';
 
 const MODES: { id: Mode; label: string; icon: string }[] = [
   { id: 'explore', label: 'Explore', icon: 'compass' },
@@ -57,7 +58,11 @@ export function createDock() {
       { v: 2, label: 'Standard', hint: 'A typical modern app' },
       { v: 3, label: 'Production', hint: 'Everything a serious product needs' },
     ];
-    mount(el, 
+    mount(el,
+      h('div', { class: 'dock__section' },
+        h('div', { class: 'dock__label' }, 'Reading lens'),
+        createLensToggle(),
+      ),
       h('div', { class: 'dock__section' },
         h('div', { class: 'dock__label' }, 'Complexity'),
         h('div', { class: 'seg' }, levels.map((l) => h('button', { class: `seg__btn ${s.complexity === l.v ? 'is-active' : ''}`, title: l.hint, onClick: () => setComplexity(l.v) }, l.label))),
@@ -76,7 +81,7 @@ export function createDock() {
             const explored = s.progress.explored.includes(id);
             return h('button', {
               class: `dockitem ${s.selected === id ? 'is-active' : ''} ${hidden ? 'is-hidden' : ''}`,
-              title: hidden ? `Appears at ${['', 'Simple', 'Standard', 'Production'][c.level]} complexity` : c.tagline,
+              title: hidden ? `Appears at ${['', 'Simple', 'Standard', 'Production'][c.level]} complexity` : taglineFor(id, s.lens),
               onClick: () => { if (hidden) setComplexity(c.level); select(id); },
               onMouseenter: () => { if (!hidden) store.set({ hovered: id }); },
               onMouseleave: () => { if (store.get().hovered === id) store.set({ hovered: null }); },
@@ -90,7 +95,7 @@ export function createDock() {
       ),
     );
   }
-  store.on(['selected', 'complexity', 'layerFilter', 'progress'], render);
+  store.on(['selected', 'complexity', 'layerFilter', 'progress', 'lens'], render);
   store.on(['dockOpen'], (s) => el.classList.toggle('is-open', s.dockOpen));
   return el;
 }
@@ -102,7 +107,7 @@ export function createToolbar() {
   const isolate = button('Isolate', { icon: 'focus', small: true, title: 'Dim everything except the selected component and its neighbours (I)', onClick: toggleIsolate });
   const labels = button('Labels', { icon: 'tag', small: true, title: 'Show component labels (L)', onClick: toggleLabels });
   const flow = button('Traffic', { icon: 'zap', small: true, title: 'Ambient data flow (F)', onClick: toggleFlow });
-  mount(el, 
+  mount(el,
     h('div', { class: 'toolbar__group' },
       button('Overview', { icon: 'home', small: true, title: 'Overview (0)', onClick: () => setView('overview') }),
       button('Top', { small: true, title: 'Top view', onClick: () => setView('top') }),
@@ -134,7 +139,7 @@ export function createTooltip() {
     y = py;
     el.hidden = false;
     clear(el);
-    mount(el, h('strong', null, c.name), h('span', null, c.tagline), h('em', null, 'Click to inspect'));
+    mount(el, h('strong', null, c.name), h('span', null, taglineFor(id, store.get().lens)), h('em', null, 'Click to inspect'));
     position();
   }
   function position() {

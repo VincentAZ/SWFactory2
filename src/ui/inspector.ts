@@ -1,6 +1,6 @@
-import type { ComponentId, ComponentContent } from '../app/types';
+import type { ComponentId, ComponentContent, ReadingLens } from '../app/types';
 import { store } from '../app/store';
-import { COMPONENT_MAP, COMPONENT_ORDER } from '../content/components';
+import { COMPONENT_MAP, COMPONENT_ORDER, FOUNDER_COPY, taglineFor } from '../content/components';
 import { LAYERS } from '../content/layers';
 import { PIPES } from '../three/layout';
 import { SCENARIOS } from '../content/scenarios';
@@ -8,13 +8,14 @@ import { GLOSSARY_MAP } from '../content/glossary';
 import { h, clear, icon, button, copyToClipboard, mount } from './dom';
 import { select, toggleIsolate, focusOn, markQuizPassed, setMode } from '../app/actions';
 import { scenarioPlayer } from '../app/scenarioPlayer';
+import { createLensToggle } from './lens';
 
 type Tab = 'overview' | 'tech' | 'examples' | 'ask' | 'quiz';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'tech', label: 'Technologies' },
   { id: 'examples', label: 'Examples & mistakes' },
-  { id: 'ask', label: 'Ask the AI' },
+  { id: 'ask', label: 'Ask your AI' },
   { id: 'quiz', label: 'Quiz' },
 ];
 
@@ -29,12 +30,13 @@ export function createInspector() {
     const c = COMPONENT_MAP[currentId];
     const layer = LAYERS[c.layer];
     const s = store.get();
+    const lens = s.lens;
 
     const back = s.mode !== 'explore'
       ? button('Back', { icon: 'chevronLeft', small: true, class: 'btn--ghost', onClick: () => select(null) })
       : null;
 
-    mount(el, 
+    mount(el,
       h('div', { class: 'insp__head', style: { '--accent': layer.color } as unknown as Record<string, string> },
         h('div', { class: 'insp__topline' },
           back,
@@ -44,11 +46,13 @@ export function createInspector() {
           button('', { icon: 'close', small: true, class: 'btn--ghost btn--icon', title: 'Close', onClick: () => select(null) }),
         ),
         h('h2', { class: 'insp__title' }, c.name),
-        h('p', { class: 'insp__tagline' }, c.tagline),
+        h('p', { class: 'insp__tagline' }, taglineFor(c.id, lens)),
         h('div', { class: 'insp__actions' },
           button('Focus', { icon: 'focus', small: true, onClick: () => focusOn(c.id) }),
           button(s.isolate ? 'Show all' : 'Isolate', { icon: 'eye', small: true, onClick: toggleIsolate, class: s.isolate ? 'is-on' : '' }),
           featuringScenario(c.id),
+          h('span', { class: 'grow' }),
+          createLensToggle({ small: true }),
         ),
       ),
       h('div', { class: 'tabs', role: 'tablist' },
@@ -59,7 +63,7 @@ export function createInspector() {
           ),
         ),
       ),
-      h('div', { class: 'insp__body' }, renderTab(c, tab)),
+      h('div', { class: 'insp__body' }, renderTab(c, tab, lens)),
     );
   }
 
@@ -76,22 +80,10 @@ export function createInspector() {
     });
   }
 
-  function renderTab(c: ComponentContent, t: Tab): HTMLElement {
+  function renderTab(c: ComponentContent, t: Tab, lens: ReadingLens): HTMLElement {
     switch (t) {
       case 'overview':
-        return h('div', null,
-          h('blockquote', { class: 'analogy' }, h('span', { class: 'analogy__label' }, 'Think of it as'), c.analogy),
-          c.purpose.map((p) => h('p', null, p)),
-          h('h4', null, 'How it connects'),
-          h('p', null, c.howItConnects),
-          h('div', { class: 'chips' }, neighbours(c.id).map((n) =>
-            h('button', { class: 'chip chip--link', onClick: () => select(n) }, h('span', { class: 'dot', style: { background: LAYERS[COMPONENT_MAP[n].layer].color } }), COMPONENT_MAP[n].shortName),
-          )),
-          c.glossary?.length ? h('details', { class: 'glossary' },
-            h('summary', null, icon('book', 14), 'Words to know'),
-            h('dl', null, c.glossary.filter((g) => GLOSSARY_MAP[g]).map((g) => [h('dt', null, GLOSSARY_MAP[g].term), h('dd', null, GLOSSARY_MAP[g].def)])),
-          ) : null,
-        );
+        return lens === 'founder' ? renderFounderOverview(c) : renderBuilderOverview(c);
       case 'tech':
         return h('div', null,
           h('p', { class: 'muted' }, 'Popular, well-supported options. AI coding tools know these well, which matters more than any benchmark.'),
@@ -108,25 +100,93 @@ export function createInspector() {
           h('ul', { class: 'list list--mistakes' }, c.mistakes.map((e) => h('li', null, e))),
         );
       case 'ask':
-        return renderAsk(c);
+        return lens === 'founder' ? renderFounderAsk(c) : renderBuilderAsk(c);
       case 'quiz':
         return renderQuiz(c);
     }
   }
 
-  function renderAsk(c: ComponentContent): HTMLElement {
+  /** Founder lens: analogy first, plain description, one small-business example, then connections. */
+  function renderFounderOverview(c: ComponentContent): HTMLElement {
+    const f = FOUNDER_COPY[c.id];
+    return h('div', null,
+      h('blockquote', { class: 'analogy' }, h('span', { class: 'analogy__label' }, 'Think of it as'), f.analogy),
+      h('p', null, f.description),
+      h('div', { class: 'realworld' }, h('span', { class: 'realworld__label' }, 'In the real world'), f.realWorld),
+      h('h4', null, 'How it connects'),
+      h('p', null, c.howItConnects),
+      neighbourChips(c.id),
+      wordsToKnow(c),
+    );
+  }
+
+  /** Builder lens: the original technical copy. */
+  function renderBuilderOverview(c: ComponentContent): HTMLElement {
+    return h('div', null,
+      h('blockquote', { class: 'analogy' }, h('span', { class: 'analogy__label' }, 'Think of it as'), c.analogy),
+      c.purpose.map((p) => h('p', null, p)),
+      h('h4', null, 'How it connects'),
+      h('p', null, c.howItConnects),
+      neighbourChips(c.id),
+      wordsToKnow(c),
+    );
+  }
+
+  function neighbourChips(id: ComponentId): HTMLElement {
+    return h('div', { class: 'chips' }, neighbours(id).map((n) =>
+      h('button', { class: 'chip chip--link', onClick: () => select(n) }, h('span', { class: 'dot', style: { background: LAYERS[COMPONENT_MAP[n].layer].color } }), COMPONENT_MAP[n].shortName),
+    ));
+  }
+
+  function wordsToKnow(c: ComponentContent): HTMLElement | null {
+    if (!c.glossary?.length) return null;
+    return h('details', { class: 'glossary' },
+      h('summary', null, icon('book', 14), 'Words to know'),
+      h('dl', null, c.glossary.filter((g) => GLOSSARY_MAP[g]).map((g) => [h('dt', null, GLOSSARY_MAP[g].term), h('dd', null, GLOSSARY_MAP[g].def)])),
+    );
+  }
+
+  function copyItem(q: string): HTMLElement {
+    return h('div', { class: 'ask__item' },
+      h('p', null, q),
+      button('', { icon: 'copy', small: true, class: 'btn--ghost btn--icon', title: 'Copy question', onClick: async () => { const ok = await copyToClipboard(q); store.toast(ok ? 'Copied' : 'Could not copy', '📋'); } }),
+    );
+  }
+
+  function copyAllButton(all: string[], label: string): HTMLElement {
+    return h('div', { class: 'ask__toolbar' },
+      button(label, { icon: 'copy', small: true, onClick: async () => { const ok = await copyToClipboard(all.map((q) => `- ${q}`).join('\n')); store.toast(ok ? 'Copied' : 'Could not copy', ok ? '📋' : '⚠️'); } }),
+    );
+  }
+
+  /** Founder lens: the 2–3 copy-paste prompts first; the detailed, staged questions tucked below. */
+  function renderFounderAsk(c: ComponentContent): HTMLElement {
+    const f = FOUNDER_COPY[c.id];
+    const more = c.askAi.flatMap((g) => g.questions);
+    return h('div', { class: 'ask' },
+      h('p', { class: 'muted' }, 'Paste any of these into your AI coding assistant (Claude Code, Cursor, or similar). Replace anything in [brackets] with your own details. One clear question at a time works best.'),
+      copyAllButton(f.askAi, 'Copy all'),
+      f.askAi.map(copyItem),
+      h('details', { class: 'ask__more' },
+        h('summary', null, icon('chevronDown', 14), `More questions, by stage (${more.length})`),
+        h('p', { class: 'muted small' }, 'The same questions an engineer would ask, grouped by when to ask them: while designing, while building, and when checking the result.'),
+        c.askAi.map((g) => h('section', { class: 'askgroup' },
+          h('h4', null, g.label),
+          g.questions.map(copyItem),
+        )),
+      ),
+    );
+  }
+
+  /** Builder lens: the original staged question groups. */
+  function renderBuilderAsk(c: ComponentContent): HTMLElement {
     const all = c.askAi.flatMap((g) => g.questions);
     return h('div', { class: 'ask' },
       h('p', { class: 'muted' }, 'Copy these into your AI coding assistant. Replace anything in [brackets] with your own choice. The best results come from asking one clear question at a time.'),
-      h('div', { class: 'ask__toolbar' },
-        button('Copy all questions', { icon: 'copy', small: true, onClick: async () => { const ok = await copyToClipboard(all.map((q) => `- ${q}`).join('\n')); store.toast(ok ? 'Copied all questions' : 'Could not copy', ok ? '📋' : '⚠️'); } }),
-      ),
+      copyAllButton(all, 'Copy all questions'),
       c.askAi.map((g) => h('section', { class: 'askgroup' },
         h('h4', null, g.label),
-        g.questions.map((q) => h('div', { class: 'ask__item' },
-          h('p', null, q),
-          button('', { icon: 'copy', small: true, class: 'btn--ghost btn--icon', title: 'Copy question', onClick: async () => { const ok = await copyToClipboard(q); store.toast(ok ? 'Copied' : 'Could not copy', '📋'); } }),
-        )),
+        g.questions.map(copyItem),
       )),
     );
   }
@@ -178,6 +238,8 @@ export function createInspector() {
     currentId = s.selected;
     render();
   });
+  // the lens changes copy only: re-render in place, keeping the current tab
+  store.on(['lens'], () => { if (currentId) render(); }, false);
   store.on(['progress'], () => { if (currentId && tab !== 'quiz') render(); }, false);
 
   return { el };

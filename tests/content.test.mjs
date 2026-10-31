@@ -51,6 +51,39 @@ test('there are 17 components, each with complete educational content', () => {
   assert.deepEqual([...IDS()].sort(), [...C.COMPONENT_ORDER].sort());
 });
 
+// Acronyms that must not appear in Founder-lens descriptions unless explained on first use, i.e.
+// immediately followed by a parenthetical or a definition ("CDN (a network of servers...)",
+// "An API is the fixed list of..."), or sitting inside a parenthetical ("The pipeline (CI/CD)").
+const FOUNDER_BANNED = ['WAF', 'TLS', 'JWT', 'RBAC', 'OAuth', 'RAG', 'TTL', 'ORM', 'IaC', 'PaaS', 'BaaS', 'SDK', 'GPU', 'OWASP', 'PCI', 'SQL', 'JSON', 'CI/CD', 'DDoS', 'DNS', 'CDN', 'API', 'HTTPS'];
+
+function explainedInline(text, term) {
+  const i = text.indexOf(term);
+  if (i < 0) return true;
+  const after = text.slice(i + term.length, i + term.length + 8);
+  const before = text.slice(Math.max(0, i - 2), i);
+  return after.startsWith(' (') || after.startsWith('(') || after.startsWith(' is ') || after.startsWith(' means ') || before.endsWith('(') || before.endsWith('( ');
+}
+
+test('every component has Founder-lens copy: analogy, 2–3 sentence plain description, real-world example, 2–3 prompts', () => {
+  for (const c of C.COMPONENTS) {
+    const f = C.FOUNDER_COPY[c.id];
+    assert.ok(f, `${c.id} has founder copy`);
+    assert.ok(f.tagline.length > 20, `${c.id} founder tagline`);
+    assert.ok(f.analogy.length > 20, `${c.id} founder analogy`);
+    assert.ok(f.realWorld.length > 40, `${c.id} founder real-world example`);
+    const sentences = f.description.split(/(?<=[.!?])\s+(?=[A-Z"“(])/).filter(Boolean).length;
+    assert.ok(sentences >= 2 && sentences <= 3, `${c.id} founder description has ${sentences} sentences (want 2–3)`);
+    assert.ok(f.askAi.length >= 2 && f.askAi.length <= 3, `${c.id} founder askAi count ${f.askAi.length} (want 2–3)`);
+    for (const q of f.askAi) assert.ok(q.length > 30, `${c.id} founder prompt too short: ${q}`);
+    for (const term of FOUNDER_BANNED) {
+      assert.ok(explainedInline(f.description, term), `${c.id} founder description uses "${term}" without explaining it in-line`);
+    }
+    assert.equal(C.taglineFor(c.id, 'founder'), f.tagline);
+    assert.equal(C.taglineFor(c.id, 'builder'), c.tagline);
+  }
+  assert.deepEqual(Object.keys(C.FOUNDER_COPY).sort(), [...IDS()].sort(), 'founder copy covers exactly the 17 components');
+});
+
 test('layout and pipes reference valid components; every component is connected', () => {
   const ids = IDS();
   for (const id of ids) assert.ok(C.LAYOUT[id], `layout for ${id}`);

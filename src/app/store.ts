@@ -1,4 +1,4 @@
-import type { ComponentId, Complexity, LayerId } from './types';
+import type { ComponentId, Complexity, LayerId, ReadingLens } from './types';
 
 export type Mode = 'explore' | 'tours' | 'scenarios' | 'decisions' | 'blueprint' | 'learn';
 export type ViewPreset = 'overview' | 'top' | 'front' | 'side' | 'closeup';
@@ -28,6 +28,8 @@ export interface State {
   layerFilter: LayerId | null;
   quality: Quality;
   reduceMotion: boolean;
+  /** which voice the component copy is shown in; copy variants only */
+  lens: ReadingLens;
   panelOpen: boolean;
   dockOpen: boolean;
   activeTour: { id: string; stop: number } | null;
@@ -43,6 +45,7 @@ export interface State {
 type Listener = (state: State, prev: State, changed: Set<keyof State>) => void;
 
 const STORAGE_KEY = 'stackworks.progress.v1';
+const LENS_KEY = 'stackworks.lens.v1';
 
 function loadProgress(): Progress {
   const base: Progress = {
@@ -72,6 +75,23 @@ function saveProgress(p: Progress) {
   }
 }
 
+function loadLens(): ReadingLens {
+  try {
+    const raw = localStorage.getItem(LENS_KEY);
+    return raw === 'builder' ? 'builder' : 'founder';
+  } catch {
+    return 'founder';
+  }
+}
+
+function saveLens(l: ReadingLens) {
+  try {
+    localStorage.setItem(LENS_KEY, l);
+  } catch {
+    /* ignore */
+  }
+}
+
 const prefersReducedMotion =
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -90,6 +110,7 @@ const initial: State = {
   layerFilter: null,
   quality: 'auto',
   reduceMotion: !!prefersReducedMotion,
+  lens: loadLens(),
   panelOpen: false,
   dockOpen: typeof window !== 'undefined' ? window.innerWidth > 900 : true,
   activeTour: null,
@@ -119,6 +140,7 @@ class Store {
     if (changed.size === 0) return;
     this.state = { ...prev, ...patch };
     if (changed.has('progress')) saveProgress(this.state.progress);
+    if (changed.has('lens')) saveLens(this.state.lens);
     for (const l of this.listeners) l(this.state, prev, changed);
   }
 

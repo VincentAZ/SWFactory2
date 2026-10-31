@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { ComponentId, Complexity, LayerId } from './types';
+import type { ComponentId, Complexity, LayerId, ReadingLens } from './types';
 import { store, type Mode, type ViewPreset } from './store';
 import { runtime } from './context';
 import { worldCenter } from '../three/layout';
@@ -114,6 +114,10 @@ export function toggleFlow() {
 }
 export function setLayerFilter(layer: LayerId | null) {
   store.set({ layerFilter: store.get().layerFilter === layer ? null : layer });
+}
+/** Reading lens: Founder (plain-language, analogy-first) or Builder (technical). Copy only. */
+export function setLens(lens: ReadingLens) {
+  store.set({ lens });
 }
 export function togglePanel(open?: boolean) {
   store.set({ panelOpen: open ?? !store.get().panelOpen });

@@ -1,4 +1,4 @@
-export { COMPONENTS, COMPONENT_MAP, COMPONENT_IDS, COMPONENT_ORDER } from './components';
+export { COMPONENTS, COMPONENT_MAP, COMPONENT_IDS, COMPONENT_ORDER, FOUNDER_COPY, taglineFor } from './components';
 export { GLOSSARY, GLOSSARY_MAP } from './glossary';
 export { SCENARIOS } from './scenarios';
 export { TOURS } from './tours';
