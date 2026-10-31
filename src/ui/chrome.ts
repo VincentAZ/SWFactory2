@@ -50,6 +50,15 @@ function brandMark() {
 
 export function createDock() {
   const el = h('aside', { class: 'dock', 'aria-label': 'Components' });
+  let idleTimer: ReturnType<typeof setTimeout>;
+  const hideCredit = () => {
+    el.classList.add('is-working');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => el.classList.remove('is-working'), 5000);
+  };
+  for (const event of ['pointerdown', 'pointermove', 'keydown', 'wheel']) {
+    window.addEventListener(event, hideCredit, { passive: true });
+  }
   function render() {
     clear(el);
     const s = store.get();
@@ -93,6 +102,7 @@ export function createDock() {
           }),
         )),
       ),
+      h('div', { class: 'dock__credit' }, 'serpico.ai'),
     );
   }
   store.on(['selected', 'complexity', 'layerFilter', 'progress', 'lens'], render);
